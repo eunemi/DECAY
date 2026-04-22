@@ -1,0 +1,32 @@
+/* Heatmap and legend styles */
+
+.heatmap-wrap {
+  width: 100%;
+  padding: 24px;
+}
+.heatmap-canvas {
+  width: 100%;
+  display: block;
+  border-radius: 8px;
+}
+.heatmap-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  font-family: monospace;
+}
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
