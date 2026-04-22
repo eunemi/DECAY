@@ -1,6 +1,6 @@
 import { Note } from './types';
 import { getAllNotes, getNoteById, deleteNote } from './db';
-import { createNote, calculateCurrentOpacity, visitNote, updateNoteContent, syncAllDecay } from './decayEngine';
+import { createNote, calculateCurrentOpacity, visitNote, syncAllDecay } from './decayEngine';
 import { renderDecayedText, updateDecayedText } from './decayRenderer';
 import { openRecallModal } from './recallModal';
 import { renderGhostList } from './ghostNotes';
