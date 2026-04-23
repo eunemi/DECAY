@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Decay - Precision Memory</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration from Design System -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#0B0B0F",
+                    "on-background": "#E6EAF2",
+                    "outline": "#9AA4B2",
+                    "surface": "#0B0B0F",
+                    "inverse-on-surface": "#151A23",
+                    "outline-variant": "#42474e",
+                    "surface-dim": "#0B0B0F",
+                    "background": "#0B0B0F",
+                    "surface-variant": "#11151C",
+                    "surface-container-highest": "#151A23",
+                    "surface-container-high": "#11151C",
+                    "surface-container-low": "#0E1117",
+                    "on-surface-variant": "#9AA4B2",
+                    "surface-container-lowest": "#0B0B0F",
+                    "on-surface": "#E6EAF2",
+                    "surface-bright": "#151A23",
+                    "primary": "#4F7CFF",
+                    "on-primary": "#0B0B0F"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin": "48px",
+                    "unit": "4px",
+                    "gutter": "24px",
+                    "container-max": "1200px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "display-xl": ["Inter"],
+                    "caption": ["Inter"],
+                    "mono-label": ["Space Grotesk"],
+                    "headline-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "400"}],
+                    "display-xl": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600"}],
+                    "caption": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                    "mono-label": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "500"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        /* Custom Utilities for Design System specifics not easily handled by inline tailwind classes */
+        .glass-panel {
+            background: #11151C;
+        }
+        .decay-line-vertical {
+            background: linear-gradient(180deg, transparent 0%, rgba(154, 164, 178, 0.2) 20%, rgba(154, 164, 178, 0.2) 80%, transparent 100%);
+        }
+        .decay-line-horizontal {
+            background: linear-gradient(90deg, transparent 0%, rgba(154, 164, 178, 0.2) 20%, rgba(154, 164, 178, 0.2) 80%, transparent 100%);
+        }
+        .text-glow {
+            text-shadow: 0 0 10px rgba(79, 124, 255, 0.3);
+        }
+        .time-shadow {
+            text-shadow: 0 0 40px rgba(79, 124, 255, 0.1);
+            filter: blur(2px);
+        }
+        /* Custom scrollbar to match minimalist aesthetic */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(154, 164, 178, 0.2);
+            border-radius: 4px;
+        }
+    </style>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('noteSearch');
+        const noteCards = document.querySelectorAll('.note-card');
+
+        // Focus on '/'
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== searchInput && document.activeElement.tagName !== 'DIV') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+            // Clear on 'Escape'
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                searchInput.blur();
+                filterNotes('');
+            }
+        });
+
+        // Filter on type
+        searchInput.addEventListener('input', (e) => {
+            filterNotes(e.target.value.toLowerCase());
+        });
+
+        function filterNotes(query) {
+            noteCards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                const content = card.querySelector('p').textContent.toLowerCase();
+                if (title.includes(query) || content.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md h-screen w-screen overflow-hidden flex antialiased selection:bg-primary/20 selection:text-primary">
+<!-- PANEL 1: Left Sidebar (Shared Component: SideNavBar) -->
+<!-- Applying exact styles from JSON `style_` keys alongside structural requirements -->
+<nav class="flex flex-col h-full py-12 px-6 space-y-8 h-screen w-72 border-r border-white/5 bg-[#0E1117] z-30 shrink-0">
+<!-- Header -->
+<div class="flex flex-col space-y-2 mb-8 px-6">
+<h1 class="text-2xl font-black tracking-tighter text-on-background uppercase font-mono text-[10px] tracking-widest uppercase">DECAY</h1>
+<span class="font-mono text-[10px] tracking-widest uppercase text-outline">Precision Memory</span>
+</div>
+<!-- Navigation Tabs -->
+<ul class="flex-1 flex flex-col space-y-1 mt-8">
+<!-- Active Tab: All Notes -->
+<li>
+<a class="flex items-center space-x-4 py-3 text-primary font-bold border-l-2 border-primary pl-6 bg-primary/5" href="#">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">note_stack</span>
+<span class="font-mono text-[10px] tracking-widest uppercase">All Notes</span>
+</a>
+</li>
+<!-- Inactive Tab: Surviving -->
+<li>
+<a class="flex items-center space-x-4 text-outline pl-6 py-3 transition-opacity duration-300 hover:bg-[#151A23] hover:text-on-background transition-all duration-500" href="#">
+<span class="material-symbols-outlined text-[18px]">eco</span>
+<span class="font-mono text-[10px] tracking-widest uppercase">Surviving</span>
+</a>
+</li>
+<!-- Inactive Tab: Fading -->
+<li>
+<a class="flex items-center space-x-4 text-outline pl-6 py-3 transition-opacity duration-300 hover:bg-[#151A23] hover:text-on-background transition-all duration-500" href="#">
+<span class="material-symbols-outlined text-[18px]">cloud_off</span>
+<span class="font-mono text-[10px] tracking-widest uppercase">Fading</span>
+</a>
+</li>
+<!-- Inactive Tab: Ghosts -->
+<li>
+<a class="flex items-center space-x-4 text-outline pl-6 py-3 transition-opacity duration-300 hover:bg-[#151A23] hover:text-on-background transition-all duration-500" href="#">
+<span class="material-symbols-outlined text-[18px]">visibility_off</span>
+<span class="font-mono text-[10px] tracking-widest uppercase">Ghosts</span>
+</a>
+</li>
+</ul>
+<!-- CTA Button -->
+<div class="px-6 mt-auto">
+<button class="w-full py-3 px-4 border border-outline/30 text-outline font-mono text-[10px] tracking-widest uppercase hover:bg-[#151A23] hover:text-on-background transition-all duration-500 flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[14px]">add</span>
+<span>New Note</span>
+</button>
+</div>
+</nav>
+<!-- MAIN CANVAS: Panels 2 & 3 -->
+<main class="flex-1 flex h-full relative overflow-hidden bg-background">
+<!-- Global Atmosphere: Ghost Text Residue -->
+<div class="absolute inset-0 pointer-events-none overflow-hidden mix-blend-screen z-0 opacity-[0.008]">
+<div class="w-full h-full p-12 font-mono-label text-mono-label text-on-background break-words leading-[1.1] tracking-tighter blur-[1px]">
+                fragments remaining. logic unspooling. context lost in the transfer. retrieve. fragments remaining. logic unspooling. context lost in the transfer. retrieve. fragments remaining. logic unspooling. context lost in the transfer. retrieve. fragments remaining. logic unspooling. context lost in the transfer. retrieve. memory address 0x0A9F21... fading...
+            </div>
+</div>
+<!-- PANEL 2: Center List (Note Cards) -->
+<section class="w-[380px] h-full flex flex-col relative z-10 bg-[#11151C] border-r border-white/[0.03]">
+<!-- List Header -->
+<header class="px-8 pt-12 pb-6 shrink-0 flex flex-col space-y-4 border-b border-white/[0.03]">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-lg text-headline-lg text-on-background">Memory Bank</h2>
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-outline text-[18px] cursor-pointer hover:text-primary transition-colors">filter_list</span>
+</div>
+</div>
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+<input class="w-full bg-transparent border-0 border-b border-outline/30 text-on-background font-mono-label text-mono-label pl-8 pb-1 pt-1 focus:ring-0 focus:border-primary focus:shadow-[0_1px_10px_rgba(79,124,255,0.2)] transition-all placeholder:text-outline/50" id="noteSearch" placeholder="Search thoughts... [/]" type="text"/>
+</div>
+</header>
+<!-- Cards Container -->
+<div class="flex-1 overflow-y-auto px-6 py-6 flex flex-col space-y-4">
+<!-- Card 1: Fresh / Urgent -->
+<article class="note-card p-5 border border-primary/20 bg-[#11151C] rounded-DEFAULT relative cursor-pointer group transition-all duration-500 hover:bg-[#151A23] hover:border-primary/40"><div class="absolute left-0 top-0 bottom-0 w-[2px] bg-primary"></div>
+<div class="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+<div class="flex justify-between items-start mb-3">
+<span class="font-mono-label text-mono-label text-primary bg-primary/10 px-2 py-1 rounded-sm">ACTIVE</span>
+<span class="font-caption text-caption text-outline">Just now</span>
+</div>
+<h3 class="font-body-md text-body-md font-semibold text-primary mb-2">Project Obsidian Architecture</h3>
+<p class="font-caption text-caption text-outline line-clamp-2">Initial structural phase complete. Awaiting structural integrity check before proceeding to the atmospheric layer.</p>
+</article>
+<!-- Decay Line Separator -->
+<div class="w-full h-px decay-line-horizontal my-2"></div>
+<!-- Card 2: Older / Stabilized -->
+<article class="note-card p-5 border border-outline/10 bg-[#11151C] rounded-DEFAULT relative cursor-pointer group opacity-85 hover:opacity-100 transition-all duration-700 hover:bg-[#151A23]"><div class="absolute left-0 top-1/4 bottom-1/4 w-[2px] bg-outline/40"></div>
+<div class="flex justify-between items-start mb-3">
+<span class="font-mono-label text-mono-label text-outline uppercase tracking-widest">Surviving</span>
+<span class="font-caption text-caption text-outline">2h ago</span>
+</div>
+<h3 class="font-body-md text-body-md text-on-background mb-2 group-hover:text-primary transition-colors">Atmospheric Rendering Logic</h3>
+<p class="font-caption text-caption text-outline line-clamp-2">The z-index stacking needs to account for the luminous layering protocol to avoid clipping.</p>
+</article>
+<!-- Card 3: Fading / Older -->
+<article class="note-card p-5 border border-outline/5 bg-transparent rounded-DEFAULT relative cursor-pointer group opacity-50 blur-[0.5px] hover:opacity-90 hover:blur-none hover:bg-[#151A23] transition-all duration-1000"><div class="absolute left-0 top-[40%] bottom-[40%] w-[2px] bg-outline/20"></div>
+<div class="flex justify-between items-start mb-3">
+<span class="font-mono-label text-mono-label text-outline/50 uppercase tracking-widest">Fading</span>
+<span class="font-caption text-caption text-outline/50">Yesterday</span>
+</div>
+<h3 class="font-body-md text-body-md text-on-background/70 mb-2">Color Palette Constraints</h3>
+<p class="font-caption text-caption text-outline/50 line-clamp-2">Strict adherence to the provided design tokens is mandatory. No arbitrary hex codes permitted outside of injected styles.</p>
+</article>
+<!-- Card 4: Ghost / Nearly Gone -->
+<article class="note-card p-5 border border-transparent bg-transparent rounded-DEFAULT relative cursor-pointer group opacity-20 blur-[1px] hover:opacity-60 hover:blur-[0.5px] transition-all duration-1000 pl-8 hover:bg-[#151A23]">
+<!-- Slight off-axis shift for decay effect -->
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-outline/20 rounded-full"></div>
+<div class="flex justify-between items-start mb-2">
+<span class="font-mono-label text-mono-label text-outline/30 uppercase tracking-widest">Ghost</span>
+<span class="font-caption text-caption text-outline/30">Last week</span>
+</div>
+<h3 class="font-body-md text-body-md text-on-background/40 mb-1">Initial Concept Sketches</h3>
+<p class="font-caption text-caption text-outline/30 line-clamp-1 italic">...data fragmented...</p>
+</article>
+</div>
+<!-- Bottom Fading Mask -->
+<div class="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#11151C] to-transparent pointer-events-none"></div>
+</section>
+<!-- PANEL 3: Right Panel (Editor Canvas) -->
+<section class="flex-1 h-full relative z-10 flex flex-col items-center pt-24 px-margin overflow-y-auto">
+<!-- Atmospheric Lighting & Time Shadow -->
+<div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
+<div class="absolute top-32 left-margin right-margin flex justify-center items-start opacity-10 pointer-events-none select-none z-0"><div class="relative flex justify-center items-start">
+<span class="font-display-xl text-[120px] leading-none text-primary time-shadow tracking-tighter mix-blend-screen transform scale-110 -translate-y-8 absolute opacity-10">ARCHITECTURE</span>
+<span class="font-display-xl text-[120px] leading-none text-primary time-shadow tracking-tighter mix-blend-screen transform scale-110 -translate-y-9 translate-x-2 absolute opacity-[0.03] blur-[4px]">ARCHITECTURE</span>
+<span class="font-display-xl text-[120px] leading-none text-primary time-shadow tracking-tighter mix-blend-screen transform scale-110 -translate-y-7 -translate-x-1 absolute opacity-[0.05] blur-[2px]">ARCHITECTURE</span>
+</div></div>
+<!-- Content Area (Max Width Constraint) -->
+<article class="w-full max-w-container-max relative z-10">
+<!-- Metadata Block -->
+<div class="flex items-center space-x-6 mb-12 opacity-70">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(79,124,255,0.6)]"></span>
+<span class="font-mono-label text-mono-label text-outline uppercase tracking-widest">Status: Active Sync</span>
+</div>
+<div class="w-px h-4 bg-outline/30"></div>
+<span class="font-mono-label text-mono-label text-outline tracking-widest">ID: 0x8A72F</span>
+<div class="w-px h-4 bg-outline/30"></div>
+<span class="font-mono-label text-mono-label text-outline tracking-widest">Modified: 12:42:09</span>
+</div>
+<!-- Editor Title -->
+<h1 class="font-display-xl text-display-xl text-on-background mb-8 focus:outline-none opacity-100" contenteditable="true">
+                    Project Obsidian Architecture
+                </h1>
+<!-- Editor Body -->
+<div class="font-body-md text-body-md text-on-background space-y-6 leading-relaxed max-w-[800px] focus:outline-none opacity-100" contenteditable="true">
+<p>
+                        The core structural phase is currently stabilized. The integration of the shared components requires strict adherence to the injected styles mapping. Any deviation in the navigation shell could compromise the entire layout integrity.
+                    </p>
+<p class="opacity-90">
+                        We must ensure the <span class="font-mono-label text-mono-label bg-[#11151C] px-1 py-0.5 rounded text-primary border border-outline/20">style_active_navigation</span> parameters are passed accurately down the DOM tree. The glassmorphism layers on the side nav are functioning, but the decay threshold on the center panel needs refinement.
+                    </p>
+<!-- Decayed Blockquote -->
+<blockquote class="pl-6 border-l-[1px] border-outline/40 py-2 my-8 opacity-70 italic relative group">
+<div class="absolute inset-0 bg-gradient-to-r from-surface-variant/10 to-transparent -z-10 group-hover:from-surface-variant/20 transition-all duration-500"></div>
+                        "Memory is not a fixed point, but a decaying signal. The interface must reflect this degradation to maintain honesty with the user."
+                        <footer class="mt-2 font-mono-label text-mono-label text-outline not-italic">— Design Precept 04</footer>
+</blockquote>
+<p class="opacity-80">
+                        Next steps involve implementing the fluid atmosphere background. The 'ghost text' layer needs to be pulled from the actual cache of deleted notes, rendered at <span class="font-mono-label text-mono-label bg-[#11151C] px-1 py-0.5 rounded text-outline border border-outline/20">opacity: 0.02</span> with a harsh blur.
+                    </p>
+<!-- Trailing active cursor simulation -->
+<div class="inline-block w-[3px] h-[1.2em] bg-primary animate-[pulse_1.5s_infinite] ml-1 align-middle shadow-[0_0_12px_rgba(79,124,255,1)] rounded-full"></div>
+</div>
+</article>
+</section>
+</main>
+</body></html>

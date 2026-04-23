@@ -1,29 +1,36 @@
-/* Heatmap and legend styles */
+/* Heatmap and legend */
 
 .heatmap-wrap {
   width: 100%;
-  padding: 24px;
+  padding: 6px 0 0;
 }
+
 .heatmap-canvas {
   width: 100%;
   display: block;
   border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 14, 22, 0.65);
 }
+
 .heatmap-legend {
   display: flex;
-  gap: 16px;
-  margin-top: 16px;
+  gap: 14px;
+  margin-top: 14px;
   align-items: center;
   flex-wrap: wrap;
 }
+
 .legend-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  color: rgba(255,255,255,0.4);
-  font-family: monospace;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(227, 234, 249, 0.6);
 }
+
 .legend-swatch {
   width: 12px;
   height: 12px;
