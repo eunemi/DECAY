@@ -7,7 +7,7 @@ import { initDB } from './db';
 import { syncAllDecay } from './decayEngine';
 import { initUI, renderNoteList, refreshUI } from './ui';
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function bootstrap() {
   // 1. Init IndexedDB
   await initDB();
 
@@ -26,4 +26,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 60000);
 
   console.log('DECAY initialized — only what matters survives.');
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}

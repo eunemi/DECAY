@@ -5,6 +5,7 @@ import { renderDecayedText, updateDecayedText } from './decayRenderer';
 import { openRecallModal } from './recallModal';
 import { renderGhostList } from './ghostNotes';
 import initHeatmap, { buildLegend } from './heatmap';
+import { mountDecayWorkspace, unmountDecayWorkspace } from './components/editor/mount';
 
 type TabName = 'notes' | 'ghosts' | 'heatmap';
 
@@ -18,16 +19,128 @@ let currentTab: TabName = 'notes';
 let selectedNoteId: string | null = null;
 let isNewNote = false;
 let heatmapController: HeatmapController | null = null;
+let noteSearchQuery = '';
+let activeDetailNoteId: string | null = null;
+
+type OpacityStatus = 'ACTIVE' | 'SURVIVING' | 'FADING' | 'GHOST';
+
+function getOpacityStatus(opacityPct: number): OpacityStatus {
+  if (opacityPct > 65) return 'ACTIVE';
+  if (opacityPct > 38) return 'SURVIVING';
+  if (opacityPct > 15) return 'FADING';
+  return 'GHOST';
+}
+
+function formatRelativeTime(timestamp: number): string {
+  const diffMs = Date.now() - timestamp;
+  const diffMin = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}h ago`;
+
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+
+  return 'Last week';
+}
+
+function formatNoteTimestamp(timestamp: number): string {
+  const date = new Date(timestamp);
+  const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const day = date.toLocaleDateString('en-US', { day: '2-digit' });
+  const year = date.toLocaleDateString('en-US', { year: 'numeric' });
+  const time = date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return `${month} ${day}, ${year} · ${time}`;
+}
+
+function applyNoteSearchFilter(query: string): void {
+  const container = document.getElementById('note-list');
+  if (!container) return;
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const cards = Array.from(container.querySelectorAll<HTMLElement>('.note-card'));
+  let visibleCount = 0;
+
+  cards.forEach((card) => {
+    const haystack = (card.dataset.searchText || '').toLowerCase();
+    const shouldShow = normalizedQuery.length === 0 || haystack.includes(normalizedQuery);
+    card.style.display = shouldShow ? 'block' : 'none';
+    if (shouldShow) visibleCount += 1;
+  });
+
+  container.querySelector('.note-list-empty--search')?.remove();
+
+  if (cards.length > 0 && visibleCount === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'note-list-empty note-list-empty--search';
+    empty.textContent = 'NO MATCHING NOTES';
+    container.appendChild(empty);
+  }
+}
 
 function getWorkspaceShell(): HTMLElement | null {
   return document.getElementById('workspace-shell');
 }
 
+function getWorkspaceColumns(): HTMLElement | null {
+  return document.querySelector('.workspace-columns');
+}
+
+function getDetailView(): HTMLElement | null {
+  return document.getElementById('note-detail-view');
+}
+
+function closeDetailView(): void {
+  const detailView = getDetailView();
+  const columns = getWorkspaceColumns();
+  if (!detailView || !columns) return;
+
+  unmountDecayWorkspace();
+
+  detailView.classList.remove('note-detail-view--open');
+  detailView.setAttribute('aria-hidden', 'true');
+  columns.classList.remove('workspace-columns--hidden');
+  activeDetailNoteId = null;
+}
+
+function openDetailView(note: Note): void {
+  const detailView = getDetailView();
+  const columns = getWorkspaceColumns();
+  if (!detailView || !columns) return;
+
+  activeDetailNoteId = note.id;
+
+  mountDecayWorkspace(
+    detailView,
+    note,
+    async (updatedNote) => {
+      await saveNote(updatedNote);
+      await renderNoteList();
+    },
+    () => {
+      closeDetailView();
+    }
+  );
+
+  columns.classList.add('workspace-columns--hidden');
+  detailView.classList.add('note-detail-view--open');
+  detailView.setAttribute('aria-hidden', 'false');
+}
+
 function closeWorkspace(): void {
+  closeDetailView();
   getWorkspaceShell()?.classList.remove('workspace-shell--open');
 }
 
 async function openWorkspace(tab: TabName): Promise<void> {
+  closeDetailView();
   getWorkspaceShell()?.classList.add('workspace-shell--open');
   await switchTab(tab);
 }
@@ -193,32 +306,80 @@ function forget(thought, retention) {
   workspaceShell.className = 'workspace-shell';
 
   const workspacePanel = document.createElement('div');
-  workspacePanel.className = 'workspace-panel glass-panel';
+  workspacePanel.className = 'workspace-panel';
 
   workspacePanel.innerHTML = `
     <div class="workspace-backdrop" id="workspace-backdrop"></div>
-    <div class="workspace-panel-inner">
-      <div class="workspace-header">
-        <div class="workspace-title">MEMORY LOG</div>
-        <div class="workspace-header-actions">
-          <button class="top-link nav-tab nav-tab--active" data-tab="notes" type="button">LOG</button>
-          <button class="top-link nav-tab" data-tab="ghosts" type="button">VOID</button>
-          <button class="top-link nav-tab" data-tab="heatmap" type="button">ARCHIVE</button>
-          <button id="workspace-close" class="workspace-close" type="button">CLOSE</button>
-        </div>
+    <div class="workspace-frame glass-panel">
+      <div class="workspace-ghost-text" aria-hidden="true">
+        fragments remaining. logic unspooling. context lost in transfer. retrieve. fragments remaining.
       </div>
-      <div class="workspace-body">
-        <aside class="workspace-sidebar">
+      <div class="workspace-columns">
+        <aside class="workspace-rail">
+          <div class="workspace-brand-block">
+            <h2 class="workspace-brand">DECAY</h2>
+            <p class="workspace-brand-subtitle">PRECISION MEMORY</p>
+          </div>
+          <div class="workspace-nav">
+            <button class="workspace-nav-item nav-tab nav-tab--active" data-tab="notes" type="button">
+              <span class="workspace-nav-icon">▣</span>
+              <span>ALL NOTES</span>
+            </button>
+            <button class="workspace-nav-item nav-tab" type="button">
+              <span class="workspace-nav-icon">◐</span>
+              <span>SURVIVING</span>
+            </button>
+            <button class="workspace-nav-item nav-tab" type="button">
+              <span class="workspace-nav-icon">◒</span>
+              <span>FADING</span>
+            </button>
+            <button class="workspace-nav-item nav-tab" data-tab="ghosts" type="button">
+              <span class="workspace-nav-icon">◌</span>
+              <span>GHOSTS</span>
+            </button>
+            <button class="workspace-nav-item nav-tab" data-tab="heatmap" type="button">
+              <span class="workspace-nav-icon">◎</span>
+              <span>ARCHIVE</span>
+            </button>
+          </div>
           <button id="new-note-btn" class="new-note-btn" type="button">+ NEW NOTE</button>
-          <div id="note-list" class="note-list"></div>
-          <div id="sidebar-status" class="sidebar-status"></div>
         </aside>
+        <section class="workspace-list-panel">
+          <header class="workspace-list-header">
+            <div class="workspace-list-title-row">
+              <h3 class="workspace-list-title">Memory Bank</h3>
+              <button class="workspace-filter-btn" type="button" aria-label="Filter memory bank">≡</button>
+            </div>
+            <label class="workspace-search-wrap" for="note-search">
+              <span class="workspace-search-icon">⌕</span>
+              <input id="note-search" class="workspace-search" type="text" autocomplete="off" placeholder="Search thoughts... [/]">
+            </label>
+            <div id="sidebar-status" class="sidebar-status"></div>
+          </header>
+          <div id="note-list" class="note-list"></div>
+        </section>
+        <section class="workspace-main-panel" style="display: none;">
+          <div class="workspace-main-head">
+            <div class="workspace-title">STATUS: ACTIVE SYNC</div>
+            <button id="workspace-close" class="workspace-close" type="button">CLOSE</button>
+          </div>
+          <div class="workspace-main-content"></div>
+        </section>
       </div>
+      <section id="note-detail-view" class="note-detail-view" aria-hidden="true"></section>
     </div>
   `;
 
-  const workspaceBody = workspacePanel.querySelector('.workspace-body') as HTMLElement;
-  workspaceBody.appendChild(createMainContent());
+  const workspaceMainContent = workspacePanel.querySelector('.workspace-main-content') as HTMLElement;
+  workspaceMainContent.appendChild(createMainContent());
+
+  const workspaceSearch = workspacePanel.querySelector('#note-search') as HTMLInputElement | null;
+  if (workspaceSearch) {
+    workspaceSearch.addEventListener('input', () => {
+      noteSearchQuery = workspaceSearch.value;
+      applyNoteSearchFilter(noteSearchQuery);
+    });
+  }
 
   workspaceShell.appendChild(workspacePanel);
   root.appendChild(workspaceShell);
@@ -227,6 +388,8 @@ function forget(thought, retention) {
 }
 
 function wireStaticInteractions(): void {
+  const searchInput = document.getElementById('note-search') as HTMLInputElement | null;
+
   document.getElementById('nav-manifesto')?.addEventListener('click', () => {
     document.getElementById('manifesto-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
@@ -244,7 +407,8 @@ function wireStaticInteractions(): void {
   });
 
   document.getElementById('start-writing-btn')?.addEventListener('click', () => {
-    void handleNewNote();
+    selectedNoteId = null;
+    void openWorkspace('notes');
   });
 
   document.getElementById('watch-fade-btn')?.addEventListener('click', () => {
@@ -263,8 +427,36 @@ function wireStaticInteractions(): void {
     void handleNewNote();
   });
 
+  // Event listeners for static UI within detail view are removed as they are now handled by React
+
   window.addEventListener('keydown', (event) => {
+    if (event.key === '/' && searchInput && document.activeElement !== searchInput) {
+      const active = document.activeElement as HTMLElement | null;
+      const isTextInput =
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.isContentEditable);
+      if (!isTextInput) {
+        event.preventDefault();
+        searchInput.focus();
+      }
+      return;
+    }
+
     if (event.key === 'Escape') {
+      const detailView = getDetailView();
+      if (detailView?.classList.contains('note-detail-view--open')) {
+        closeDetailView();
+        return;
+      }
+
+      if (searchInput && document.activeElement === searchInput && searchInput.value) {
+        searchInput.value = '';
+        noteSearchQuery = '';
+        applyNoteSearchFilter(noteSearchQuery);
+        return;
+      }
       closeWorkspace();
     }
   });
@@ -479,10 +671,10 @@ function renderEditor(note: Note): void {
     <span>DECAY ${note.decayRate.toFixed(6)}/MIN</span>
   `;
 
+  editor.appendChild(metaBar);
   editor.appendChild(headerBar);
   editor.appendChild(tagsRow);
   editor.appendChild(contentWrap);
-  editor.appendChild(metaBar);
 
   if (isNewNote) {
     isNewNote = false;
@@ -509,39 +701,49 @@ export async function renderNoteList(): Promise<void> {
 
   for (const note of aliveNotes) {
     const result = calculateCurrentOpacity(note);
+    const pct = Math.round(result.opacity * 100);
+    const statusLabel = getOpacityStatus(pct);
+    const timeLabel = formatRelativeTime(note.lastVisitedAt);
+
     const card = document.createElement('div');
     card.className = `note-card ${note.id === selectedNoteId ? 'note-card--selected' : ''}`;
+    card.classList.add(`note-card--${statusLabel.toLowerCase()}`);
     card.dataset.noteId = note.id;
+
+    const titleText = note.title || 'Untitled';
+    const previewText = note.content.slice(0, 120) + (note.content.length > 120 ? '...' : '');
+    card.dataset.searchText = `${titleText} ${note.content}`;
+
+    const meta = document.createElement('div');
+    meta.className = 'note-card-meta';
+    meta.innerHTML = `
+      <span class="note-card-status">${statusLabel}</span>
+      <span class="note-card-time">${timeLabel}</span>
+    `;
 
     const title = document.createElement('div');
     title.className = 'note-card-title';
-    title.textContent = note.title || 'Untitled';
+    title.textContent = titleText;
     title.style.opacity = Math.max(0.3, result.opacity).toString();
 
     const preview = document.createElement('div');
     preview.className = 'note-card-preview';
-    preview.textContent = note.content.slice(0, 72) + (note.content.length > 72 ? '...' : '');
-    preview.style.opacity = Math.max(0.15, result.opacity * 0.65).toString();
+    preview.textContent = previewText;
+    preview.style.opacity = Math.max(0.15, result.opacity * 0.78).toString();
 
-    const meta = document.createElement('div');
-    meta.className = 'note-card-meta';
+    const strength = document.createElement('div');
+    strength.className = 'note-card-strength';
+    strength.innerHTML = `<span class="opacity-dot"></span><span>${pct}%</span>`;
 
-    const opacityDot = document.createElement('span');
-    opacityDot.className = 'opacity-dot';
-    const pct = Math.round(result.opacity * 100);
-    if (pct > 60) opacityDot.style.backgroundColor = '#b2d5ff';
-    else if (pct > 30) opacityDot.style.backgroundColor = '#f59e0b';
-    else opacityDot.style.backgroundColor = '#ff7b9a';
+    const opacityDot = strength.querySelector('.opacity-dot') as HTMLElement;
+    if (pct > 60) opacityDot.style.backgroundColor = '#4f7cff';
+    else if (pct > 30) opacityDot.style.backgroundColor = '#9aa4b2';
+    else opacityDot.style.backgroundColor = '#646b77';
 
-    const metaText = document.createElement('span');
-    metaText.textContent = `${pct}%`;
-
-    meta.appendChild(opacityDot);
-    meta.appendChild(metaText);
-
+    card.appendChild(meta);
     card.appendChild(title);
     card.appendChild(preview);
-    card.appendChild(meta);
+    card.appendChild(strength);
 
     card.addEventListener('click', async () => {
       await openWorkspace('notes');
@@ -549,12 +751,15 @@ export async function renderNoteList(): Promise<void> {
       const fresh = await visitNote(note.id);
       if (!fresh) return;
 
-      renderEditor(fresh);
+      openDetailView(fresh);
       await renderNoteList();
+      await updateStatusBar();
     });
 
     container.appendChild(card);
   }
+
+  applyNoteSearchFilter(noteSearchQuery);
 }
 
 async function updateStatusBar(): Promise<void> {
@@ -567,12 +772,11 @@ async function updateStatusBar(): Promise<void> {
   const gone = notes.filter((note) => note.status === 'gone').length;
 
   element.innerHTML = `
-    <span class="status-item"><span class="status-dot status-dot--alive"></span>${alive} ALIVE</span>
-    <span class="status-item"><span class="status-dot status-dot--ghost"></span>${ghost} GHOST</span>
-    <span class="status-item"><span class="status-dot status-dot--gone"></span>${gone} GONE</span>
+    <span class="status-item"><span class="status-dot status-dot--alive"></span>ALIVE ${alive}</span>
+    <span class="status-item"><span class="status-dot status-dot--ghost"></span>GHOST ${ghost}</span>
+    <span class="status-item"><span class="status-dot status-dot--gone"></span>GONE ${gone}</span>
   `;
 }
-
 async function switchTab(tab: TabName): Promise<void> {
   currentTab = tab;
 
@@ -590,6 +794,10 @@ async function switchTab(tab: TabName): Promise<void> {
   editor.style.display = 'none';
   ghostView.style.display = 'none';
   heatmapView.style.display = 'none';
+
+  if (tab !== 'notes') {
+    closeDetailView();
+  }
 
   if (tab !== 'heatmap' && heatmapController) {
     heatmapController.destroy();
@@ -675,8 +883,9 @@ async function switchTab(tab: TabName): Promise<void> {
     if (!fresh) return;
 
     await switchTab('notes');
-    renderEditor(fresh);
+    openDetailView(fresh);
     await renderNoteList();
+    await updateStatusBar();
   }) as unknown as HeatmapController;
 
   heatmapController.render(notes);
@@ -689,10 +898,9 @@ async function handleNewNote(): Promise<void> {
   const note = await createNote('Untitled', '', []);
   selectedNoteId = note.id;
   currentTab = 'notes';
-  isNewNote = true;
+  isNewNote = false;
 
   await renderNoteList();
-  renderEditor(note);
   await updateStatusBar();
 }
 
@@ -700,6 +908,16 @@ async function refreshUI(): Promise<void> {
   await syncAllDecay();
   await renderNoteList();
   await updateStatusBar();
+
+  const detailView = getDetailView();
+  if (detailView?.classList.contains('note-detail-view--open') && activeDetailNoteId) {
+    const activeNote = await getNoteById(activeDetailNoteId);
+    if (activeNote) {
+      openDetailView(activeNote);
+    } else {
+      closeDetailView();
+    }
+  }
 
   if (currentTab === 'heatmap' && heatmapController) {
     await heatmapController.update();
