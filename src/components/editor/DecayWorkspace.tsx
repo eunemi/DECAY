@@ -49,8 +49,9 @@ export const DecayWorkspace: React.FC<DecayWorkspaceProps> = ({ note, onSave, on
           <div 
             style={{ 
               position: 'relative', 
+              width: '100%',
               maxWidth: 720, 
-              margin: '0 auto', 
+              margin: '0 auto',
               height: '100%',
               display: 'flex',
               flexDirection: 'column'

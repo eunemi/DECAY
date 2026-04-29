@@ -10,14 +10,13 @@ export const LeftToolDock: React.FC = () => {
     <AnimatePresence>
       {!isFocusMode && (
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, x: -20, y: '-50%' }}
+          animate={{ opacity: 1, x: 0, y: '-50%' }}
+          exit={{ opacity: 0, x: -20, y: '-50%' }}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             left: 24,
             top: '50%',
-            transform: 'translateY(-50%)',
             display: 'flex',
             flexDirection: 'column',
             gap: 16,

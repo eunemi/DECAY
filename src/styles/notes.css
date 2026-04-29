@@ -528,8 +528,7 @@
 .note-detail-canvas {
   position: relative;
   z-index: 1;
-  max-width: 980px;
-  margin: 0 auto;
+  width: 100%;
   padding: 62px 36px 80px;
 }
 
