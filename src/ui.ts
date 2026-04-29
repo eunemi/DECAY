@@ -47,18 +47,7 @@ function formatRelativeTime(timestamp: number): string {
   return 'Last week';
 }
 
-function formatNoteTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-  const day = date.toLocaleDateString('en-US', { day: '2-digit' });
-  const year = date.toLocaleDateString('en-US', { year: 'numeric' });
-  const time = date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  return `${month} ${day}, ${year} · ${time}`;
-}
+
 
 function applyNoteSearchFilter(query: string): void {
   const container = document.getElementById('note-list');

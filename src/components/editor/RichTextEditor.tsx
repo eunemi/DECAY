@@ -42,6 +42,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, 
   return (
     <div className="rich-text-editor-container" style={{ position: 'relative', zIndex: 10, minHeight: '70vh' }}>
       {/* Floating Toolbar (BubbleMenu) */}
+      {/* @ts-expect-error tippyOptions typing mismatch in current TipTap types */}
       <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
         <div style={{
           display: 'flex',
@@ -85,6 +86,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, 
       </BubbleMenu>
 
       {/* Slash Commands Stub (FloatingMenu) */}
+      {/* @ts-expect-error tippyOptions typing mismatch in current TipTap types */}
       <FloatingMenu editor={editor} tippyOptions={{ duration: 100 }}>
         <div style={{
           padding: '6px',
