@@ -26,7 +26,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, 
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] max-w-[920px] mx-auto prose-p:my-1 prose-p:leading-snug prose-headings:my-3 prose-ul:my-1 prose-li:my-0',
+        class: 'prose prose-invert max-w-none focus:outline-none min-h-[70vh] max-w-[920px] mx-auto prose-p:my-1 prose-p:leading-snug prose-headings:my-3 prose-ul:my-1 prose-li:my-0',
       },
     },
   });
@@ -40,7 +40,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialContent, 
   }
 
   return (
-    <div className="rich-text-editor-container" style={{ position: 'relative', zIndex: 10 }}>
+    <div className="rich-text-editor-container" style={{ position: 'relative', zIndex: 10, minHeight: '70vh' }}>
       {/* Floating Toolbar (BubbleMenu) */}
       <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
         <div style={{
